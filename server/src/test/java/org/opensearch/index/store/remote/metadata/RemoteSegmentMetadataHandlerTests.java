@@ -12,11 +12,12 @@ import org.apache.lucene.index.SegmentInfos;
 import org.apache.lucene.store.ByteBuffersDataOutput;
 import org.apache.lucene.store.ByteBuffersIndexOutput;
 import org.apache.lucene.store.OutputStreamIndexOutput;
+import org.apache.lucene.util.Version;
 import org.junit.After;
 import org.junit.Before;
 import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.common.UUIDs;
-import org.opensearch.common.bytes.BytesReference;
+import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.common.io.stream.BytesStreamOutput;
 import org.opensearch.common.lucene.store.ByteArrayIndexInput;
 import org.opensearch.common.settings.Settings;
@@ -61,6 +62,7 @@ public class RemoteSegmentMetadataHandlerTests extends IndexShardTestCase {
         Map<String, String> expectedOutput = getDummyData();
         indexOutput.writeMapOfStrings(expectedOutput);
         indexOutput.writeLong(1234);
+        indexOutput.writeLong(1234);
         indexOutput.writeLong(0);
         indexOutput.writeBytes(new byte[0], 0);
         indexOutput.close();
@@ -76,6 +78,7 @@ public class RemoteSegmentMetadataHandlerTests extends IndexShardTestCase {
         OutputStreamIndexOutput indexOutput = new OutputStreamIndexOutput("dummy bytes", "dummy stream", output, 4096);
         Map<String, String> expectedOutput = getDummyData();
         indexOutput.writeMapOfStrings(expectedOutput);
+        indexOutput.writeLong(1234);
         indexOutput.writeLong(1234);
         ByteBuffersIndexOutput segmentInfosOutput = new ByteBuffersIndexOutput(new ByteBuffersDataOutput(), "test", "resource");
         segmentInfos.write(segmentInfosOutput);
@@ -103,6 +106,7 @@ public class RemoteSegmentMetadataHandlerTests extends IndexShardTestCase {
         RemoteSegmentMetadata remoteSegmentMetadata = new RemoteSegmentMetadata(
             RemoteSegmentMetadata.fromMapOfStrings(expectedOutput),
             segmentInfosBytes,
+            1234,
             1234
         );
         remoteSegmentMetadataHandler.writeContent(indexOutput, remoteSegmentMetadata);
@@ -113,6 +117,7 @@ public class RemoteSegmentMetadataHandlerTests extends IndexShardTestCase {
         );
         assertEquals(expectedOutput, metadata.toMapOfStrings());
         assertEquals(1234, metadata.getGeneration());
+        assertEquals(1234, metadata.getPrimaryTerm());
         assertArrayEquals(segmentInfosBytes, metadata.getSegmentInfosBytes());
     }
 
@@ -130,6 +135,8 @@ public class RemoteSegmentMetadataHandlerTests extends IndexShardTestCase {
                 + randomIntBetween(1000, 5000)
                 + "::"
                 + randomIntBetween(1024, 2048)
+                + "::"
+                + Version.LATEST.major
         );
         expectedOutput.put(
             prefix + ".cfs",
@@ -142,6 +149,8 @@ public class RemoteSegmentMetadataHandlerTests extends IndexShardTestCase {
                 + randomIntBetween(1000, 5000)
                 + "::"
                 + randomIntBetween(1024, 2048)
+                + "::"
+                + Version.LATEST.major
         );
         return expectedOutput;
     }
